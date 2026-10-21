@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# O fork acrescenta a guarda de push sem retirar a tripla de migration.
+set -euo pipefail
+raiz="$(git rev-parse --show-toplevel)"
+exec bash "$raiz/.agents/skills/deskcomm-contribuir/scripts/hooks/pre-commit" "$@"

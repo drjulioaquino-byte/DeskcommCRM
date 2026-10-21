@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Guarda local do fork: preserva os hooks do produto e recusa push nas bases.
+set -euo pipefail
+
+raiz="$(git rev-parse --show-toplevel)"
+entrada="$(cat)"
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  case "${remote_ref:-}" in
+    refs/heads/main|refs/heads/master|refs/heads/integracao)
+      printf 'pre-push BLOQUEADO: %s — base protegida; use PR contra integracao.\n' "$remote_ref" >&2
+      exit 1
+      ;;
+  esac
+done <<< "$entrada"
+
+# Repõe o stdin para não perder as guardas originais. Funciona também em push
+# de várias refs; o bloqueio acima é decidido antes de chamar o hook delegado.
+printf '%s\n' "$entrada" | bash "$raiz/.agents/skills/deskcomm-contribuir/scripts/hooks/pre-push" "$@"

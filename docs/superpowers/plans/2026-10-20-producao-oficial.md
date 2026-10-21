@@ -1,8 +1,8 @@
 # Plano de implantação do DeskcommCRM em produção
 
-**Estado:** proposta para revisão da Claude e decisão do Júlio.
+**Estado:** revisão aprovada pelo Human em 20/10/2026, 20h33 BRT, com as condições da seção 15. Preparação da Fase 0 autorizada; execução da Fase 1 condicionada a R-01, R-02 e R-03 resolvidos.
 
-**Submissão:** publicação no GitHub autorizada posteriormente pelo Human; ver seção 14.
+**Submissão:** revisão publicada no commit; próxima submissão por PR contra `integracao`, após a criação dessa base e a habilitação de PRs. Ver seções 14 e 15.
 
 **Autora:** Codex, implementadora.
 
@@ -14,7 +14,7 @@
 
 O objetivo é colocar uma instalação oficial do DeskcommCRM em operação, com atendimento por WhatsApp, IA, continuidade para humanos e recuperação comprovada. A entrega inclui homologação isolada, testes das jornadas essenciais, backup externo, ensaio de restauração, entrada controlada em produção e passagem da operação ao responsável.
 
-O sucesso depende de três provas diferentes: o artefato instalado corresponde à release escolhida; uma pessoa consegue realizar as jornadas pela interface; uma instalação perdida pode ser recuperada com os dados e arquivos necessários. Aprovar este plano libera a preparação autorizada pelo Júlio; a abertura do atendimento real tem uma decisão própria ao final.
+O sucesso depende de três provas diferentes: o artefato instalado corresponde à release escolhida; uma pessoa consegue realizar as jornadas pela interface; uma instalação perdida pode ser recuperada com os dados e arquivos necessários. A preparação da Fase 0 foi autorizada pelo Júlio; o fechamento da governança do fork e a prova da fixação das imagens precedem a Fase 1. A abertura do atendimento real tem uma decisão própria ao final.
 
 ## 1. Decisão já tomada e limites de autorização
 
@@ -26,9 +26,9 @@ O Júlio escolheu nesta conversa: **“Versão oficial primeiro (recomendado)”
 | Codex, implementadora | Prepara os ambientes autorizados, executa o plano aprovado, reúne evidências e propõe correções em branch própria. |
 | Claude, revisora | Revisa o plano e as evidências; recomenda com justificativa. Sua revisão não constitui autorização operacional. |
 
-A autorização atual cobre produzir este plano. Não cobre contratar serviços, alterar DNS, provisionar banco, instalar na VPS ou enviar mensagens. As credenciais serão fornecidas pelo mecanismo seguro do ambiente escolhido, sem publicação no chat ou no Git. O envio externo de testes deve nomear o número controlado e ser autorizado antes de ocorrer.
+A autorização inicial cobria produzir este plano. A autorização posterior de publicação está preservada na seção 14, e a decisão de revisão e início da Fase 0, na seção 15. Contratação, alteração de DNS, provisionamento, instalação e envio dependem das decisões de entrada e dos checkpoints aplicáveis. As credenciais serão fornecidas pelo mecanismo seguro do ambiente escolhido, sem publicação no chat ou no Git. O envio externo de testes deve nomear o número controlado e ser autorizado antes de ocorrer.
 
-O plano será entregue ao Júlio para encaminhamento à revisora. Não haverá mensagem automática à Claude, publicação de comentário ou abertura de PR apenas por constar aqui um destinatário.
+O pedido inicial à revisora foi publicado no [comentário do commit](https://github.com/drjulioaquino-byte/DeskcommCRM/commit/c8f2a83a6cab24f7d33e9c0a59c817f1b5943869#commitcomment-205885458). Após a criação de `integracao` e habilitação de PRs, a atualização será submetida contra essa base, com head, base e checks no corpo. Publicar o pedido não equivale a revisão realizada.
 
 ## 2. Base técnica e versão candidata
 
@@ -45,7 +45,7 @@ O plano será entregue ao Júlio para encaminhamento à revisora. Não haverá m
 
 O commit usado para ler e planejar é diferente do commit da release candidata. A implantação usará **kit, compose, baseline e imagens da mesma release oficial**. Não se aplica o baseline do `main` sobre uma imagem antiga. Os caminhos de testes mencionados adiante foram localizados no checkout de referência e deverão ser reconferidos no checkout da release antes de executar.
 
-A versão candidata será reconfirmada no início da execução. Trocar a versão exige registrar novo SHA, diferenças relevantes, imagens e critérios de aceite afetados. Nenhuma atualização para o topo do desenvolvimento será feita por conveniência.
+A versão aprovada para o experimento é `1.86.0`, e não a release que estiver mais recente no dia da instalação. Trocar a versão exige decisão do Human e registro de novo SHA, diferenças relevantes, imagens e critérios de aceite afetados. O experimento descrito em `docs/runbooks/experimento-v1860-imagens.md` deve comprovar a escolha explícita de `APP_IMAGE`, a derivação das imagens e o estado final; até lá, R-02 permanece pendente de prova operacional.
 
 ### Fontes verificáveis
 
@@ -63,6 +63,7 @@ A versão candidata será reconfirmada no início da execução. Trocar a versã
 ### Incluído
 
 - Uma instalação inicial, com uma organização piloto e contas de teste identificadas.
+- Governança do fork na Fase −1: revisão por PR contra `integracao`, branches protegidas, Actions restrito, identidade própria e bloqueio local de push direto.
 - Domínio, HTTPS, acesso administrativo, banco, Storage, autenticação e e-mails de acesso.
 - App, worker de IA, scheduler, Redis e canal WhatsApp previstos pelo kit.
 - Configuração do agente pela tela: credencial, conhecimento sintético, funil, limites de gasto, transferência e retorno humano.
@@ -76,7 +77,7 @@ Distribuição de imagens do fork; novas funcionalidades; alterações preventiv
 
 ### Topologia para a primeira implantação
 
-Proposta para decisão na fase 0: VPS Linux com Docker e Supabase gerenciado externo, com recursos separados para homologação e produção. As aplicações não compartilharão banco, buckets, tokens, sessões WhatsApp ou credenciais de IA. O kit selecionará o proxy compatível com o servidor; um proxy já existente será preservado.
+Proposta para decisão na fase 0: VPS Linux com Docker e Supabase gerenciado externo, com recursos separados para homologação e produção. **A VPS clona o original `https://github.com/melgarafael/DeskcommCRM.git`, no commit da release `v1.86.0`; não clona o fork de governança.** As aplicações não compartilharão banco, buckets, tokens, sessões WhatsApp ou credenciais de IA. O kit selecionará o proxy compatível com o servidor; um proxy já existente será preservado.
 
 O fluxo esperado é: pessoa no WhatsApp → canal → ingresso validado → fila e worker → ferramentas e conhecimento da organização → cadeia de envio → resposta ou continuidade humana. O navegador acompanha Inbox, funil, execuções e alertas. Scheduler e mecanismos de vigilância devem continuar processando a operação sem uma sessão de terminal aberta.
 
@@ -90,7 +91,7 @@ Todas devem ter dono, valor e evidência registrados, sem segredos, antes das fa
 |---|---|---|---|
 | D1 | Servidor existente ou novo, sistema, arquitetura, hospedagem e acesso SSH. | Júlio | Antes da fase 1 na VPS. |
 | D2 | Domínio de produção, endereço de homologação, gestão do DNS e proxy atual. | Júlio | Antes de publicar endpoints. |
-| D3 | Conta e projeto Supabase de cada ambiente, região, plano e responsável pelo pagamento. | Júlio | Antes de criar ou aplicar schema. |
+| D3 | Conta e projeto Supabase de cada ambiente, região, plano e responsável pelo pagamento. Para Free, decidir aceitação da pausa por inatividade e da ausência de PITR, a recuperação por cópias externas e seu impacto nas metas D10. | Júlio | Antes de criar ou aplicar schema. |
 | D4 | Uso próprio ou implantação para terceiros; quem administra a conta e os dados. | Júlio | Antes de solicitar credenciais. |
 | D5 | Número controlado para testes e número final, canal escolhido, autorização dos destinatários de teste. | Júlio | Antes do pareamento ou envio. |
 | D6 | Provedor/modelo de IA, teto de gasto, funcionalidades de áudio e conhecimento necessárias. | Júlio | Antes dos testes com IA real. |
@@ -99,30 +100,55 @@ Todas devem ter dono, valor e evidência registrados, sem segredos, antes das fa
 | D9 | Carga esperada, horários de atendimento, responsáveis por alertas e indisponibilidade. | Júlio | Antes do teste de capacidade e do piloto. |
 | D10 | Janela de entrada, critérios de interrupção e metas de perda e recuperação de dados. | Júlio | Antes da fase 5. |
 | D11 | Telemetria e serviços opcionais permitidos, com escolha explícita do operador. | Júlio | Na instalação. |
+| D12 | Origem na VPS já decidida: original `melgarafael/DeskcommCRM`, tag `v1.86.0`, commit `70a8c2775567f7daea721c77d34a9881190397bc`; verificar remoto e HEAD no experimento e na implantação. | Codex verifica; Júlio aprova mudança de versão. | Ficha F0 e manifesto F1. |
+| D13 | Local privado das evidências reais, controle de acesso, retenção e responsável; o fork público recebe somente manifesto sanitizado. | Júlio | Antes de capturar evidência de produção. |
 
 Sugestões para revisão, sem constituir SLA: perda máxima de dados de 24 horas e recuperação em até 4 horas; piloto de 72 horas antes da ampliação. Se perder um dia de conversas for inaceitável, aumentar a frequência e a consistência dos backups antes da abertura. O tempo de recuperação só será aceito após ensaio, incluindo DNS, acesso e validação pela tela.
 
 Nenhum custo recorrente será aprovado por este documento. A fase 0 apresenta os valores atuais dos serviços escolhidos ao Júlio antes de contratar ou aumentar plano.
 
+No Supabase Free, atividade baixa pode resultar em pausa; não se assume disponibilidade contínua nem se agenda tráfego artificial para contornar a política. A reativação e o responsável ficam no runbook. PITR não está incluído nessa proposta: restaurações usam os pontos discretos dos backups disponíveis. A [documentação de produção](https://supabase.com/docs/guides/deployment/going-into-prod) e a [documentação de backups](https://supabase.com/docs/guides/platform/backups) devem ser reconferidas para a conta escolhida. D3 só fecha quando essa limitação for compatível com D10 ou o Human escolher outro plano.
+
 ## 5. Etapas de execução
+
+### Fase −1 — Governança do fork
+
+1. **Human:** sincronizar o `main` do fork com o original somente por fast-forward. Registrar o SHA efetivo; se houver divergência, parar sem reset, force-push ou descarte de commits.
+2. **Codex, após a sincronização confirmada:** criar `integracao` exatamente desse SHA e a tag `checkpoint/2026-10-20-base` no mesmo commit. Ref/tag já existentes com outro SHA exigem decisão, nunca reposicionamento automático. A criação inicial de `integracao` é ato de provisionamento pela API, sem liberar push direto no hook.
+3. **Human:** habilitar PRs e configurar ruleset ativo para `main` e `integracao`: PR obrigatório; os cinco checks `verify`, `invariants`, `build-and-size`, `e2e` e `imagens-ok`; sem force-push, sem exclusão e sem bypass/exceções, inclusive de administrador. Os merges permanecem exclusivos do Human.
+4. Habilitar no Actions somente `ci`, `e2e`, `perf` e `mysql-integracao`; desabilitar os demais workflows herdados. Publicação de imagem, release e deploy do fork ficam desligados. Preservar runners hospedados; não ligar executor próprio ou entregar segredos de produção ao CI.
+5. Conferir os gatilhos de cada workflow para PRs destinados a `integracao`. No checkout de referência, `perf.yml` e `mysql-integracao.yml` filtram `main`; habilitar o workflow sozinho não altera esse filtro. Qualquer adequação será feita por PR.
+6. Resolver o produtor de `imagens-ok` sem relaxar o ruleset. No checkout de referência, esse check é de `publish-image.yml`, fora dos quatro workflows autorizados. Até decisão sobre a adequação, o check continua obrigatório e o fechamento de R-01 fica pendente; não criar um check nominal que só retorna sucesso.
+7. Desligar atualizações automáticas do Dependabot. Registrar separadamente version updates e security updates; manter alertas de vulnerabilidade visíveis. Alterações no arquivo de configuração entram por PR; não apagar branches existentes para declarar o requisito atendido.
+8. Usar token fine-grained selecionando somente `drjulioaquino-byte/DeskcommCRM`, com prazo e permissões mínimas para conteúdo/PR. Configuração de ruleset pelo Human não concede permissão administrativa permanente à implementadora. Verificar a seleção sem capturar o token; não substituir por token amplo para ultrapassar um bloqueio.
+9. Ativar o hook local `scripts/fork/hooks/pre-push`, que bloqueia `main`, `master` e `integracao`, inclusive criação, atualização e exclusão por push. Preservar o pre-commit e as demais guardas do contribuidor por delegação. Validar em repositórios descartáveis, sem push de teste ao GitHub.
+10. Configurar identidade própria da implementadora no clone, com nome e e-mail de agente, e conferir autor/committer antes de publicar. Credencial autenticada pelo Human não torna o Human autor do trabalho da Codex. O commit anterior permanece no histórico; a correção de autoria vale para novos commits.
+
+**Entrega:** checklist de governança com SHA de origem, `integracao`, checkpoint, rulesets, workflows, Dependabot, escopo do token e teste do hook.
+
+**Aceite:** cada requisito medido no fork; os cinco checks têm produtores reais nos PRs para `integracao`. Só então R-01 fica resolvido.
+
+**Dependência:** pré-condição para concluir a Fase 0 e para entrar na Fase 1. A autorização das 20h33 permite adiantar a ficha e a preparação documental da Fase 0 enquanto a governança é concluída; não dispensa seus bloqueadores.
 
 ### Fase 0 — Fechar o escopo operacional
 
-1. Revisora analisa este plano; Júlio decide o que incorporar e autoriza as fases seguintes com escopo explícito.
-2. Registrar D1–D11, os responsáveis e os limites financeiros.
+1. Incorporar as decisões do Human das 20h33; preparar a ficha enquanto a Fase −1 avança, sem declarar a governança concluída.
+2. Registrar D1–D13, os responsáveis e os limites financeiros, incluindo a origem oficial do clone, os riscos do Free e o destino privado de evidências.
 3. Identificar se já existe instalação em uso. Se existir, preservar serviços e dados e produzir um plano de atualização/migração específico; o roteiro de banco vazio não será aplicado.
 4. Definir se homologação terá servidor próprio ou isolamento equivalente comprovado. A referência preferencial é infraestrutura separada.
 5. Escolher release, arquitetura e endpoints; listar apenas capacidades necessárias ao primeiro atendimento.
 
 **Entrega:** ficha de implantação, mapa de dependências, versão candidata e lista de acessos disponíveis.
 
-**Aceite:** nenhuma escolha que afete custo, dados ou envio permanece presumida.
+**Aceite:** nenhuma escolha que afete custo, dados ou envio permanece presumida, e a Fase −1 foi encerrada com evidência. A ficha fica em `docs/runbooks/ficha-f0-producao-oficial.md`, somente com campos sanitizados.
 
 **Interrupção:** ausência de acesso ao ambiente não será tratada como autorização para usar produção como laboratório.
 
 ### Fase 1 — Conferir a release e preparar a infraestrutura
 
-1. Criar checkout separado da release oficial, resolver a tag até o commit e comparar com o SHA aprovado. Ler o `CLAUDE.md`, as instruções do kit e as notas de atualização dessa versão.
+**Entrada obrigatória:** R-01 governança concluída, R-02 experimento de pinagem aprovado e R-03 clone do original confirmado. Preparar o roteiro de experimento não é executá-lo; autorização da Fase 0 não autoriza provisionar uma VPS para fazê-lo.
+
+1. Clonar na VPS o **original** `https://github.com/melgarafael/DeskcommCRM.git`, resolver `v1.86.0` até `70a8c2775567f7daea721c77d34a9881190397bc` e registrar remoto/HEAD. Ler o `CLAUDE.md`, as instruções do kit e as notas de atualização dessa versão.
 2. Consultar os resultados de CI e publicação **do SHA e da tag escolhidos**. Exigir evidências de `verify`, `invariants`, `build-and-size`, `e2e` e `imagens-ok`, ou investigar a estrutura equivalente da release. Job cancelado, ignorado ou apenas citado não comprova execução.
 3. Conferir imagens próprias previstas pela matriz da release. O checkout atual lista app, worker, scheduler e voice-agent; este último não será ativado no piloto. Verificar disponibilidade, plataforma e vínculo das imagens com a revisão de origem, e registrar os digests.
 4. Fazer a sonda pelo mesmo namespace e referência que a VPS consumirá. Registrar que WAHA e demais dependências vêm dos seus fornecedores, com referências aprovadas. Não republicá-las.
@@ -130,7 +156,7 @@ Nenhum custo recorrente será aprovado por este documento. A fase 0 apresenta os
 6. Preparar DNS, HTTPS e os projetos separados do banco. Verificar que portas administrativas, banco e painel do WAHA não ficam expostos além do necessário.
 7. Verificar o modo de ligação ao banco compatível com a rede real e com o kit da release; testar TLS e privilégios. Não presumir que um host funciona apenas porque o formato parece correto.
 
-**Entrega:** manifesto de implantação com origem, tag, commit, arquitetura, imagens/digests, composes, domínios e projetos por ambiente.
+**Entrega:** manifesto de implantação com origem oficial, tag, commit, arquitetura, imagens/digests e composes. O fork público guarda somente a versão sanitizada; domínios/projetos, configuração detalhada e provas reais ficam no destino privado de D13.
 
 **Aceite:** imagens recuperáveis, recursos suficientes para o ensaio e conexões reais validadas.
 
@@ -138,7 +164,7 @@ Nenhum custo recorrente será aprovado por este documento. A fase 0 apresenta os
 
 ### Fase 2 — Instalar a homologação pela jornada oficial
 
-1. Executar o instalador da release em ambiente isolado e acompanhar sua conferência antes dos efeitos. Usar os pontos de configuração previstos por ele.
+1. Executar o instalador da release pelo procedimento já aprovado no experimento de R-02: escolher explicitamente `APP_IMAGE=ghcr.io/melgarafael/deskcommcrm:1.86.0`, conferir sua derivação para worker/scheduler e validar as referências finais e os digests. O default automático de `VERSAO_ALVO` não é aceito como pinagem.
 2. Aplicar o baseline da mesma release pelo kit. A cadeia histórica de migrations não será usada para construir um banco fresco.
 3. Criar o dono, configurar domínio, fuso `America/Sao_Paulo`, marca pela tela e opções de telemetria. Definir os módulos opcionais desativados conforme o escopo.
 4. Confirmar app, worker e scheduler em funcionamento e persistência após reinicialização controlada. Conferir a combinação de arquivos compose efetivamente escolhida pelo instalador.
@@ -221,7 +247,12 @@ Nenhum custo recorrente será aprovado por este documento. A fase 0 apresenta os
 | `docs/superpowers/plans/2026-10-20-producao-oficial.md` | Plano atual para revisão. |
 | `docs/runbooks/` | Runbook específico da instalação, recuperação, atualização e escalada, se o Júlio decidir versioná-lo. Sem identificadores sensíveis. |
 | `docs/testing/user-journey-map.md` | Acrescentar apenas casos, resultados e referências de evidência realmente medidos. |
-| `evidence/producao-oficial/<execucao>/` | Resultados sintéticos, imagens sanitizadas e manifesto de validação. Revisar antes de versionar porque o fork é público. |
+| Repositório privado de evidências definido em D13 | Capturas, traces, logs e demais provas reais. Dumps, credenciais e sessões permanecem protegidos e fora do fork público. |
+| Manifesto sanitizado no fork | IDs opacos dos casos, resultado, versão/SHA, hashes de integridade e localização lógica sob controle de acesso. Nenhuma captura ou trace de produção, mesmo após tentativa de anonimização. |
+| `docs/runbooks/ficha-f0-producao-oficial.md` | Ficha inicial e dependências, sem dados sensíveis. |
+| `docs/runbooks/experimento-v1860-imagens.md` | Experimento descartável exigido por R-02, ainda sem resultado operacional. |
+| `scripts/fork/hooks/` | Guardas locais de governança com delegação aos hooks do contribuidor. |
+| `tests/shell/fork-governanca-hooks.test.sh` | Prova do bloqueio em refs reais de repositórios descartáveis. |
 | Checkout oficial da instalação | Kit, composes e baseline da release; configuração operacional protegida fora do Git. |
 | Infraestrutura | DNS, proxy, projetos Supabase, SMTP, segredos, canal, armazenamento de backup e monitoramento autorizados. |
 | `app/`, `lib/`, `workers/`, `supabase/` e workflows | Leitura e validação. Alteração somente se um defeito concreto justificar nova proposta aprovada. |
@@ -230,7 +261,7 @@ Não estão planejadas migrations nem mudanças de API. Se um achado exigir alte
 
 ## 7. Matriz de aceite funcional e adversarial
 
-Todos os casos abaixo são obrigatórios para o escopo WhatsApp com IA. Uma capacidade opcional retirada do piloto exige decisão explícita e atualização da matriz antes da execução.
+Todos os casos abaixo são obrigatórios para o escopo WhatsApp com IA. Antes deles, o caso G0 do runbook de R-02 comprova a pinagem real. Uma capacidade opcional retirada do piloto exige decisão explícita e atualização da matriz antes da execução. Evidências reais obedecem D13 e N-02.
 
 | ID | Caso | Resultado necessário |
 |---|---|---|
@@ -335,7 +366,8 @@ Os mesmos riscos serão lidos pelas lentes da revisora: engenharia, dados, fulls
 
 | Marco | Material para a revisora | Decisão do Júlio |
 |---|---|---|
-| C0 — Plano | Este arquivo, versão candidata e D1–D11. | Aprovar escopo e preparação; decidir recomendações da revisora. |
+| C−1 — Governança | Fase −1, base/checkpoint, regras e produtores dos checks. | Human confirma seus atos de sincronização/proteção; fechamento de R-01. |
+| C0 — Plano | Este arquivo, versão fixada, experimento de R-02 e D1–D13. | Revisão aprovada às 20h33; preparação de F0 liberada, F1 condicionada a R-01/R-02/R-03. |
 | C1 — Homologação | Manifesto, CI do SHA, T01–T18, falhas e restauração. | Autorizar preparação final ou exigir correções. |
 | C2 — Abertura | Artefatos realmente instalados, testes do ambiente final, backup, responsáveis e plano de interrupção. | Liberar piloto real e seus destinatários/limites. |
 | C3 — Ampliação | Resultado do piloto, custos, incidentes, treino e pendências. | Ampliar, manter restrito ou interromper. |
@@ -346,7 +378,7 @@ Registros distinguirão o que foi decidido pelo Human, recomendado pela Claude e
 
 ### Ordem e esforço de referência
 
-F0 → F1 → F2 → F3 → F4 → C1 → F5 → C2 → F6 → C3. Preparação documental, inventário e escolha de backup podem avançar em conjunto; testes com efeitos e mudanças de ambiente obedecem suas dependências.
+F−1 → fechamento de F0 → F1 → F2 → F3 → F4 → C1 → F5 → C2 → F6 → C3. A preparação documental de F0 foi autorizada a começar durante F−1. O experimento de R-02 exige máquina descartável autorizada e deve terminar antes da F1. Inventário e escolha de backup podem avançar em conjunto; testes com efeitos e mudanças de ambiente obedecem suas dependências.
 
 Estimativa de planejamento, sujeita a ambiente e acesso: um dia para fechar decisões e conferir artefatos; um a dois dias para instalar e configurar homologação; dois a três dias para jornadas e recuperação; um dia para preparação final e passagem inicial, mais o piloto proposto de 72 horas. Correções de produto, contratação, DNS, espera de revisão e indisponibilidade de terceiros não estão embutidos. Não é compromisso de prazo.
 
@@ -354,7 +386,7 @@ Estimativa de planejamento, sujeita a ambiente e acesso: um dia para fechar deci
 
 > [Codex — implementadora] Solicito revisão do plano de implantação oficial do DeskcommCRM. A decisão do Human é começar pela versão oficial. Base documental: `ff5b55c0a007a28637b3c7a348534decad31d3ed`; candidata de implantação: `v1.86.0`, commit `70a8c2775567f7daea721c77d34a9881190397bc`, ainda sujeita a pré-voo. Revise coerência entre release e artefatos, isolamento dos ambientes, autorização de efeitos, jornadas pela tela, prova em par, recuperação de banco e arquivos, risco de envio duplicado, atualização e critérios de abertura. Classifique os achados por prioridade, com ID, evidência, impacto e recomendação. Indique também quais condições impedem executar a primeira etapa. Nenhuma implantação, teste funcional ou restauração foi executada para este plano. Suas recomendações serão submetidas ao Human antes de alterar o escopo ou implementar correções.
 
-## 13. Estado desta entrega
+## 13. Estado da primeira entrega
 
 Foram feitas leituras do repositório e consultas somente de leitura à origem, releases, tag e checks. A branch deste plano foi criada para manter o trabalho separado. A elaboração não executou build, suites, instalação, alteração de DNS, criação de projeto, pareamento, envio ou restauração. CI do fork não será apresentado como prova da release oficial.
 
@@ -367,3 +399,23 @@ Registro acrescentado em 20/10/2026, às 20h01 BRT, após o horário de elabora�
 Essa solicitação autoriza publicar este plano em branch própria do fork `drjulioaquino-byte/DeskcommCRM` e abrir o PR de documentação com o pedido de revisão à Claude. Atualiza o limite de publicação registrado na seção 1, preservando o registro da autorização inicial. A implantação e o atendimento real continuam sujeitos aos checkpoints do plano.
 
 O PR terá o SHA completo do head final, os comandos de verificação efetivamente executados e o estado dos checks desse SHA. Esse checkpoint fica no PR para evitar citar o SHA do próprio commit dentro dele mesmo. O link do PR será entregue ao Human; a publicação do pedido não constitui revisão já realizada nem aprovação da revisora.
+
+## 15. Decisões do Human após a revisão
+
+Os registros abaixo são acrescentados à primeira entrega; não substituem os registros das seções 13 e 14.
+
+- **19h51 BRT de 20/10/2026:** o Human determinou registrar a decisão **“Concordo com tudo…”**. Esse é o trecho literal informado no encaminhamento posterior; o restante da frase não foi fornecido e não será reconstruído. Sua aplicação concreta é delimitada pelas decisões das 20h33.
+- **20h33 BRT de 20/10/2026:** decisão do Human **“Revisão aprovada”**, transmitida neste chat com sete determinações sobre R-01, R-02, R-03 e N-01 a N-04. O Human também declarou: **“A Fase 0 pode começar. A Fase 1 depende de R-01, R-02 e R-03 resolvidos.”**
+- Os achados são atribuídos à revisora Claude pelo encaminhamento do Human. Na consulta feita para esta atualização, o comentário público disponível era o pedido da Codex; não se atribui a ele o conteúdo da revisão da Claude. O link do registro de decisão/revisão no PR será acrescentado quando o PR existir.
+
+| Achado | Decisão aplicada ao plano | Evidência de encerramento ainda necessária |
+|---|---|---|
+| R-01 | Fase −1 e bloqueio de push; PRs contra `integracao`. | Human faz FF/proteção; base/checkpoint, Actions, Dependabot, escopo do token e cinco produtores reais conferidos. |
+| R-02 | Seleção explícita de `APP_IMAGE` numerada e verificação das derivadas; runbook do experimento. | Experimento completo em máquina descartável com `.env` allowlist, compose efetivo e digests. |
+| R-03 | A VPS clona o original, explicitado em F0/F1 e D12. | Remoto e SHA medidos no checkout real da VPS. |
+| N-01 | Decisões das 19h51/20h33 registradas; PR planejado contra `integracao`. | PR aberto na base existente, com head/base completos e checks daquele head. |
+| N-02 | Evidências reais fora do fork; somente manifesto sanitizado público. | D13 preenchido e controle de acesso conferido. |
+| N-03 | D3 inclui pausa por inatividade e ausência de PITR no Free. | Aceitação pelo Human ou escolha de plano compatível com D10. |
+| N-04 | Identidade própria em novos commits da implementadora, sem reescrever o commit anterior. | Autor/committer e configuração local conferidos antes do próximo commit. |
+
+Na consulta inicial desta atualização, o fork estava em `ff5b55c0a007a28637b3c7a348534decad31d3ed`, sem `integracao`, sem rulesets retornados e com `has_pull_requests=false`. O original consultado estava em `b00fe79b6417ecaacd8e808adb9bf9f7244d08a0`. Esses dados são um retrato, não o SHA reservado para o checkpoint: ele só será fixado após o fast-forward executado pelo Human.
