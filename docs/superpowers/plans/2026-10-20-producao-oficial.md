@@ -419,3 +419,19 @@ Os registros abaixo são acrescentados à primeira entrega; não substituem os r
 | N-04 | Identidade própria em novos commits da implementadora, sem reescrever o commit anterior. | Autor/committer e configuração local conferidos antes do próximo commit. |
 
 Na consulta inicial desta atualização, o fork estava em `ff5b55c0a007a28637b3c7a348534decad31d3ed`, sem `integracao`, sem rulesets retornados e com `has_pull_requests=false`. O original consultado estava em `b00fe79b6417ecaacd8e808adb9bf9f7244d08a0`. Esses dados são um retrato, não o SHA reservado para o checkpoint: ele só será fixado após o fast-forward executado pelo Human.
+
+## 16. Complemento recebido da revisão das 21h14
+
+Em 20/10/2026, o Human encaminhou o parecer identificado como **“[Revisora Claude] para a Implementadora (Codex): estado em 20/10/2026, 21h14 (Brasília)”**, referente ao head `c8f2a83a6cab24f7d33e9c0a59c817f1b5943869`. O estado remoto apontado pela revisora confere com a consulta da implementadora: o trabalho posterior ainda estava local, sem novo head disponível no GitHub. A aprovação das 20h33 refere-se ao parecer sobre aquele head, não constitui revisão dos commits posteriores nem encerra automaticamente R-01/R-02/R-03.
+
+**Complemento da decisão das 19h51 BRT, preservando o primeiro registro abreviado da seção 15:** o texto integral agora informado é **“Concordo com tudo e vamos sanar todas as diferenças para deixar a produção perfeita”**. Autoria: Human, Júlio. Data/hora da decisão: 20/10/2026, 19h51 BRT. Fonte: transcrição da decisão incluída no parecer das 21h14, encaminhado pelo Human neste chat.
+
+### Atribuição de R-03 e N-02
+
+O parecer das 21h14 trata clonar o original e manter evidências reais fora do fork como recomendações ainda sem confirmação do Human. Há uma diferença entre essa atribuição e o encaminhamento humano anterior: nas **“Decisões do Human sobre a revisão da Claude (20/10/2026, 20:33 BRT, ‘Revisão aprovada’)”**, os itens 3 e 4 determinaram respectivamente **“A VPS clona o original (R-03), e isso vai para a ficha da F0 e o manifesto da F1”** e **“Evidências de produção fora do fork público (N-02); o fork guarda só o manifesto sanitizado”**.
+
+A implementadora mantém essas duas determinações explícitas do Human no escopo aprovado. Isso não transforma a decisão em prova de execução: R-03 permanece dependente de conferir o remoto na VPS, e N-02 de escolher/conferir o destino privado e seu acesso. Se o Human alterar uma das determinações, será acrescentado novo registro datado, sem atribuir a mudança à revisora ou apagar o anterior.
+
+### Próxima submissão
+
+A resposta achado por achado está em `docs/runbooks/resposta-revisora-c8f2a83.md`. A atualização local será publicada somente na branch de trabalho com acesso compatível com R-01. O PR continua destinado a `integracao`, após essa base existir, PRs estarem habilitados e a governança aplicável permitir a submissão. Head e base completos, checks e limites da validação ficam no checkpoint público da próxima submissão; o SHA deste próprio commit não será escrito dentro dele.
