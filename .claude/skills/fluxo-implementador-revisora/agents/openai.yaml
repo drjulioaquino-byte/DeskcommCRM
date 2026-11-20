@@ -1,6 +1,0 @@
-interface:
-  display_name: "Fluxo implementadora e revisora"
-  short_description: "Governança local das ordens, revisões e merges do DeskcommCRM"
-  default_prompt: "Siga a skill fluxo-implementador-revisora para executar esta ordem no fork DeskcommCRM."
-policy:
-  allow_implicit_invocation: true
