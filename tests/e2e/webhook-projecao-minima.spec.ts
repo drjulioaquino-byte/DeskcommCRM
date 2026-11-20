@@ -79,6 +79,25 @@ for (const trigger of ["contact.tag_added", "lead.tag_added"]) {
       expect(
         rows.find((r: { id: string }) => r.id === rule.id).actions[0].config.projection,
       ).toEqual({ mode: "contact_minimal", tag: "outra" });
+      // Remover é uma escolha explícita do gestor, preservando os demais campos.
+      await dialog.getByRole("switch", { name: "Enviar somente o contato mínimo" }).click();
+      await expect(dialog.getByLabel("Etiqueta que dispara o envio")).toHaveCount(0);
+      const removed = page.waitForResponse(
+        (r) => r.url().endsWith(`/automation-rules/${rule.id}`) && r.request().method() === "PATCH",
+      );
+      await dialog.getByRole("button", { name: "Salvar alterações" }).click();
+      expect((await removed).status()).toBe(200);
+      await page.reload();
+      await card.getByRole("button", { name: "Editar automação" }).click();
+      await expect(
+        dialog.getByRole("switch", { name: "Enviar somente o contato mínimo" }),
+      ).not.toBeChecked();
+      const afterRemoval = await (
+        await page.request.get(`${APP_URL}/api/v1/automation-rules`)
+      ).json();
+      expect(
+        afterRemoval.data.find((r: { id: string }) => r.id === rule.id).actions[0].config,
+      ).toEqual({ url: "https://receiver.example.invalid/hook" });
     } finally {
       expect(
         (await page.request.delete(`${APP_URL}/api/v1/automation-rules/${rule.id}`)).status(),

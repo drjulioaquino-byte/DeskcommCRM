@@ -335,6 +335,10 @@ describe("P-05/P-07: portas reais de criação e PATCH parcial", () => {
     expect(stored).toMatchObject({ is_active: false });
   });
   it("round-trip PATCH mantém o perfil e usa a organização da sessão no POST", async () => {
+    // Marcador fictício e indecifrável: prova só preservação, nunca criptografia.
+    existing.actions = [
+      { type: "call_webhook", config: { ...config, secret_enc: "NON_USABLE_CIPHERTEXT_FIXTURE" } },
+    ];
     expect((await patch({ actions: existing.actions })).status).toBe(200);
     expect(stored?.actions).toEqual(existing.actions);
     const response = await POST(
