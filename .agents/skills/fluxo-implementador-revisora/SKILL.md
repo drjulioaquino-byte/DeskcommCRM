@@ -1,6 +1,11 @@
+---
+name: fluxo-implementador-revisora
+description: 'Aplica a governança local Codex e Claude do fork DeskcommCRM: ordens humanas, revisões, checks e merges autorizados.'
+---
+
 # Fluxo implementadora ↔ revisora Claude — adaptação local do DeskcommCRM
 
-**Adaptação local do fork `drjulioaquino-byte/DeskcommCRM`.** Complementa a skill global `fluxo-implementadora` 2.0.0, com o ajuste de **execução de ordens equivalente à 2.0.1**, conforme decisão humana; não altera nem publica a skill global. **Ordem de origem:** O-20261120-1208-AF, 20/11/2026 12:08 (Brasília). **Assinatura dos registros:** `[Codex · Integrações]` nesta sessão, ou a assinatura correspondente da sessão expressamente designada. Branch exclusiva por sessão, com prefixo `codex/integracoes/` para Integrações.
+**Adaptação local do fork `drjulioaquino-byte/DeskcommCRM`.** Complementa a skill global `fluxo-implementadora` 2.0.0, cuja fonte fica em `drjulioaquino-byte/ClinicOS`, arquivo `.agents/skills/fluxo-implementadora/SKILL.md`, com o ajuste de **execução de ordens equivalente à 2.0.1**, conforme decisão humana; não altera nem publica a skill global. **Ordem de origem:** O-20261120-1208-AF, 20/11/2026 12:08 (Brasília). **Assinatura dos registros:** `[Codex · Integrações]` nesta sessão, ou a assinatura correspondente da sessão expressamente designada. Branch exclusiva por sessão, com prefixo `codex/integracoes/` para Integrações.
 
 ## 1. Origem, precedência e sincronização do fork
 
@@ -62,4 +67,4 @@ Registrar no **PR mesclado** o SHA da nova `main` e o resultado observado do wor
 
 ## 8. Conferência da adaptação
 
-Aceite: arquivo único e novo neste caminho, sem tocar `AGENTS.md`/`CLAUDE.md`; PR próprio em rascunho; diff restrito a `.agents/skills/fluxo-implementador-revisora/SKILL.md`; base/head e CI registrados; revisão A1 solicitada para o SHA completo. A adoção só ocorrerá depois de revisão, autorização e merge em ordem futura apropriada.
+Aceite: os quatro arquivos da skill nova (fonte `SKILL.md`, `agents/openai.yaml` e as duas cópias byte a byte em `.claude/skills/`), sem tocar `AGENTS.md`/`CLAUDE.md`; PR próprio em rascunho; diff restrito aos quatro arquivos da skill nesta ordem O-20261120-1223-AI; base/head e CI registrados; revisão A1 solicitada para o SHA completo. A adoção só ocorrerá depois de revisão, autorização e merge em ordem futura apropriada.
