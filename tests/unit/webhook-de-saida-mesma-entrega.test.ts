@@ -162,6 +162,133 @@ function reenviar(runId: string): Promise<Response> {
 }
 
 describe("webhook de saída: o Reenviar é a mesma entrega (#1529)", () => {
+  it("P-01: duas ações, duas regras e dois tenants isolam o opt-in sem mudar o padrão", async () => {
+    const contato = "55555555-5555-4555-8555-555555555555";
+    const minimo = {
+      type: "call_webhook",
+      config: { url, projection: { mode: "contact_minimal", tag: "contrato" } },
+    };
+    const legado = { type: "call_webhook", config: { url } };
+    const fato = {
+      ...evento(),
+      event_type: "contact.tag_added",
+      entity_kind: "contact",
+      entity_id: contato,
+      payload: { added_tags: ["Contrato", "Outra"], unexpected: "PRIVATE_PAYLOAD" },
+    };
+    const regra = {
+      id: REGRA,
+      organization_id: ORG,
+      trigger_event: fato.event_type,
+      is_active: true,
+      name: "Fictícia",
+      conditions: [],
+      actions: [minimo, legado],
+    };
+    const tabelas: Record<string, Linha[]> = {
+      automation_rules: [
+        regra,
+        { ...regra, id: "segunda", actions: [legado] },
+        { ...regra, id: "terceira", organization_id: "outra-org", actions: [minimo] },
+      ],
+      contacts: [
+        {
+          id: contato,
+          organization_id: ORG,
+          name: "Contato fictício",
+          phone_number: "+5511000000000",
+          email: "PRIVATE_EMAIL",
+        },
+      ],
+      automation_rule_runs: [],
+      event_log: [fato],
+    };
+    await runAutomationForEvent(bancoFalso(tabelas), fato);
+    expect(corpos).toHaveLength(3);
+    const bodies = corpos as unknown as Array<{ data: Record<string, unknown> }>;
+    const [minimal, legacyFirst, legacySecond] = bodies;
+    if (!minimal || !legacyFirst || !legacySecond)
+      throw new Error("Faltou uma das três entregas fictícias.");
+    expect(minimal.data).toEqual({
+      added_tags: ["contrato"],
+      contact: { id: contato, name: "Contato fictício", phone_number: "+5511000000000" },
+    });
+    expect(legacyFirst.data).toEqual(legacySecond.data);
+    expect(legacyFirst.data).toMatchObject({
+      added_tags: ["Contrato", "Outra"],
+      unexpected: "PRIVATE_PAYLOAD",
+      contact: { email: "PRIVATE_EMAIL" },
+    });
+    expect(tabelas.automation_rule_runs).toHaveLength(2);
+  });
+
+  for (const trigger of ["contact.tag_added", "lead.tag_added"]) {
+    it(`${trigger}: motor e Reenviar mantêm o contato mínimo e a identidade da entrega`, async () => {
+      const contato = "55555555-5555-4555-8555-555555555555";
+      const lead = "66666666-6666-4666-8666-666666666666";
+      const fato = {
+        ...evento(),
+        event_type: trigger,
+        entity_kind: trigger === "contact.tag_added" ? "contact" : "crm_lead",
+        entity_id: trigger === "contact.tag_added" ? contato : lead,
+        payload: { added_tags: ["Outra", " Contrato "], email: "PRIVATE_PAYLOAD" },
+      };
+      const actions = [
+        {
+          type: "call_webhook",
+          config: { url, projection: { mode: "contact_minimal", tag: "contrato" } },
+        },
+      ];
+      const tabelas: Record<string, Linha[]> = {
+        automation_rules: [
+          {
+            id: REGRA,
+            organization_id: ORG,
+            trigger_event: trigger,
+            is_active: true,
+            name: "Fictícia",
+            conditions: [],
+            actions,
+          },
+        ],
+        event_log: [fato],
+        automation_rule_runs: [],
+        contacts: [
+          {
+            id: contato,
+            organization_id: ORG,
+            name: "Contato fictício",
+            phone_number: "+5511000000000",
+            email: "PRIVATE_EMAIL",
+          },
+        ],
+        crm_leads: [{ id: lead, organization_id: ORG, contact_id: contato, title: "PRIVATE_LEAD" }],
+      };
+      const banco = bancoFalso(tabelas);
+      deps.criarClientDeSessao.mockResolvedValue(banco);
+      deps.criarClientAdmin.mockReturnValue(banco);
+      await runAutomationForEvent(banco, fato);
+      expect(corpos).toHaveLength(1);
+      const original = tabelas.automation_rule_runs?.[0];
+      if (!original) throw new Error("O motor não gravou o run fictício.");
+      expect((await reenviar(original.id as string)).status).toBe(201);
+      const expected = {
+        added_tags: ["contrato"],
+        contact: { id: contato, name: "Contato fictício", phone_number: "+5511000000000" },
+      };
+      for (const body of corpos)
+        expect(body).toEqual({
+          event: trigger,
+          occurred_at: expect.any(String),
+          happened_at: fato.created_at,
+          delivery_id: idDaEntrega(EVENTO, REGRA, 0, actions),
+          data: expected,
+        });
+      expect(recebidas.map((h) => h["x-webhook-attempt"])).toEqual(["1", "2"]);
+      expect(JSON.stringify(tabelas.automation_rule_runs)).not.toContain("PRIVATE_");
+    });
+  }
+
   it("motor → Reenviar → Reenviar: mesmo Delivery, Attempt 1, 2, 3 e o run novo aponta o original", async () => {
     const acoes = [
       { type: "acao_inexistente" },
@@ -210,7 +337,10 @@ describe("webhook de saída: o Reenviar é a mesma entrega (#1529)", () => {
     expect(recebidas[1]?.["x-webhook-attempt"]).toBe("2");
     // `occurred_at` segue sendo a hora do ENVIO (contrato público); a do fato
     // vai em `happened_at` e é a mesma no disparo e no Reenviar.
-    expect(corpos.map((c) => c.happened_at)).toEqual(["2026-01-01T00:00:00.000Z", "2026-01-01T00:00:00.000Z"]);
+    expect(corpos.map((c) => c.happened_at)).toEqual([
+      "2026-01-01T00:00:00.000Z",
+      "2026-01-01T00:00:00.000Z",
+    ]);
     const reenviadoEm = Date.parse(corpos[1]?.occurred_at ?? "");
     expect(reenviadoEm).toBeGreaterThanOrEqual(antesDoReenvio);
     expect(reenviadoEm).toBeLessThanOrEqual(depoisDoReenvio);

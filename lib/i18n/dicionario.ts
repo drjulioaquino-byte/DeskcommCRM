@@ -37,6 +37,20 @@ import type { Idioma } from "./idiomas";
 type Traducoes = Record<string, Partial<Record<Exclude<Idioma, "pt-BR">, string>>>;
 
 export const DICIONARIO: Traducoes = {
+  "Enviar somente o contato mínimo": { es: "Enviar solo el contacto mínimo" },
+  "Etiqueta que dispara o envio": { es: "Etiqueta que activa el envío" },
+  "Desligado: mantém o envio atual. Ligado: envia apenas id, nome, telefone e a etiqueta adicionada. Disponível quando uma etiqueta é adicionada ao contato ou ao negócio.": { es: "Desactivado: mantiene el envío actual. Activado: envía solo id, nombre, teléfono y la etiqueta añadida. Disponible cuando se añade una etiqueta al contacto o al negocio." },
+  "Informe uma etiqueta inteira. Espaços nas pontas e maiúsculas são normalizados; acentos e pontuação são preservados.": { es: "Indica una etiqueta completa. Se normalizan los espacios en los extremos y las mayúsculas; se conservan los acentos y la puntuación." },
+  "Para usar o contato mínimo, desligue o envio do responsável abaixo. A regra não será salva enquanto as duas opções estiverem ligadas.": { es: "Para usar el contacto mínimo, desactiva el envío del responsable abajo. La regla no se guardará mientras ambas opciones estén activadas." },
+  "O perfil de contato mínimo está inválido. Revise a configuração da ação.": { es: "El perfil de contacto mínimo no es válido. Revisa la configuración de la acción." },
+  "Desligue o envio do responsável para usar o contato mínimo.": { es: "Desactiva el envío del responsable para usar el contacto mínimo." },
+  "O contato mínimo só atende à adição de etiqueta no contato ou no negócio.": { es: "El contacto mínimo solo admite la adición de una etiqueta al contacto o al negocio." },
+  "O contato vinculado precisa de id, nome e telefone válidos para este envio.": { es: "El contacto vinculado necesita id, nombre y teléfono válidos para este envío." },
+  "O contato, a entidade e a empresa do evento não correspondem. Nenhum dado foi enviado.": { es: "El contacto, la entidad y la empresa del evento no coinciden. No se envió ningún dato." },
+  "O evento não trouxe uma lista válida de etiquetas adicionadas.": { es: "El evento no incluyó una lista válida de etiquetas añadidas." },
+  "A etiqueta configurada não foi adicionada neste evento. Nenhum dado foi enviado.": { es: "La etiqueta configurada no se añadió en este evento. No se envió ningún dato." },
+  "O envio do contato mínimo falhou. Confira o destino antes de reenviar.": { es: "El envío del contacto mínimo falló. Comprueba el destino antes de reenviar." },
+  "A projeção mínima exige contact.tag_added ou lead.tag_added, uma etiqueta válida e o envio do responsável desligado.": { es: "La proyección mínima requiere contact.tag_added o lead.tag_added, una etiqueta válida y el envío del responsable desactivado." },
   "Há um ajuste proporcional esperando pagamento. Escolher outro plano cancela esse ajuste.": { es: "Hay un ajuste proporcional esperando el pago. Elegir otro plan cancela ese ajuste." },
   "Estamos preparando o ajuste proporcional. Aguarde alguns segundos e tente novamente.": { es: "Estamos preparando el ajuste proporcional. Espera unos segundos e inténtalo de nuevo." },
   "Estamos preparando o ajuste proporcional. Aguarde alguns segundos.": { es: "Estamos preparando el ajuste proporcional. Espera unos segundos." },

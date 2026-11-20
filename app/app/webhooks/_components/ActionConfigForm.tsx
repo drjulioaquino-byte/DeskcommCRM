@@ -40,6 +40,14 @@ export type ConfigDoAtribuir =
   | { modo?: "fixo"; user_id: string }
   | { modo: "rodizio"; fila: Array<{ user_id: string; pausado: boolean }> };
 
+type ConfigDoWebhook = {
+  url: string;
+  secret?: string;
+  secret_enc?: string;
+  include_owner?: boolean;
+  projection?: { mode: "contact_minimal"; tag: string };
+};
+
 export type ActionItem =
   | { type: "create_or_move_lead"; config: { pipeline_id: string; stage_id: string } }
   | {
@@ -68,7 +76,7 @@ export type ActionItem =
       config: { tags: string[]; destino?: "card" | "contato" };
     }
   | { type: "assign_owner"; config: ConfigDoAtribuir }
-  | { type: "call_webhook"; config: { url: string; secret?: string; secret_enc?: string; include_owner?: boolean } }
+  | { type: "call_webhook"; config: ConfigDoWebhook }
   | {
       type: "start_message_flow";
       config: { flow_pointer_id: string; surface?: "followup" | "atendimento" };
@@ -827,11 +835,11 @@ function CreateTaskForm({
   );
 }
 
-function CallWebhookForm({
-  config,
-  onChange,
-}: FormProps<{ url: string; secret?: string; secret_enc?: string; include_owner?: boolean }>) {
+function CallWebhookForm({ config, onChange }: FormProps<ConfigDoWebhook>) {
   const t = useT();
+  const projectionId = React.useId();
+  const tagId = React.useId();
+  const ownerId = React.useId();
   // O segredo é write-only: o servidor guarda cifrado (secret_enc) e nunca
   // devolve o valor. Digitar aqui envia `secret` novo; deixar em branco
   // preserva o secret_enc existente no round-trip do editor.
@@ -858,20 +866,78 @@ function CallWebhookForm({
             const { secret_enc: _enc, ...rest } = config;
             onChange(next ? { ...rest, secret: next } : { ...rest, secret: undefined });
           }}
-          placeholder={hasStoredSecret ? t("•••••••• (definido — digite para trocar)") : t("uma senha só sua")}
+          placeholder={
+            hasStoredSecret ? t("•••••••• (definido — digite para trocar)") : t("uma senha só sua")
+          }
         />
         <p className="text-xs text-muted-foreground">
           {hasStoredSecret
-            ? t("Já existe um segredo guardado com segurança. Digitar aqui substitui; limpar remove.")
-            : t("Se preencher, enviaremos uma assinatura para o outro sistema conferir que fomos nós.")}
+            ? t(
+                "Já existe um segredo guardado com segurança. Digitar aqui substitui; limpar remove.",
+              )
+            : t(
+                "Se preencher, enviaremos uma assinatura para o outro sistema conferir que fomos nós.",
+              )}
         </p>
         {/* O guia de quem recebe (#1529). Pelo CAMINHO, em texto, e não link:
             numa instalação de marca própria um link para o repositório de
             origem apareceria para o cliente do revendedor — mesmo precedente
             do UpdatePanel, que aponta o CHANGELOG pelo nome do arquivo. */}
         <p className="text-xs text-muted-foreground">
-          {t("Como o outro sistema confere a assinatura e reconhece reenvios: guia de integração em docs/integracao/webhooks-de-saida.md, na documentação do projeto.")}
+          {t(
+            "Como o outro sistema confere a assinatura e reconhece reenvios: guia de integração em docs/integracao/webhooks-de-saida.md, na documentação do projeto.",
+          )}
         </p>
+      </div>
+      <div className="space-y-2 rounded-md border p-3">
+        <div className="flex items-center justify-between gap-3">
+          <Label htmlFor={projectionId}>{t("Enviar somente o contato mínimo")}</Label>
+          <Switch
+            id={projectionId}
+            checked={config.projection !== undefined}
+            onCheckedChange={(checked) => {
+              if (checked)
+                onChange({ ...config, projection: { mode: "contact_minimal", tag: "" } });
+              else {
+                const { projection: _projection, ...legacy } = config;
+                onChange(legacy);
+              }
+            }}
+          />
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {t(
+            "Desligado: mantém o envio atual. Ligado: envia apenas id, nome, telefone e a etiqueta adicionada. Disponível quando uma etiqueta é adicionada ao contato ou ao negócio.",
+          )}
+        </p>
+        {config.projection && (
+          <div className="space-y-1">
+            <Label htmlFor={tagId}>{t("Etiqueta que dispara o envio")}</Label>
+            <Input
+              id={tagId}
+              value={config.projection.tag}
+              maxLength={40}
+              onChange={(e) =>
+                onChange({
+                  ...config,
+                  projection: { mode: "contact_minimal", tag: e.target.value },
+                })
+              }
+            />
+            <p className="text-xs text-muted-foreground">
+              {t(
+                "Informe uma etiqueta inteira. Espaços nas pontas e maiúsculas são normalizados; acentos e pontuação são preservados.",
+              )}
+            </p>
+            {config.include_owner === true && (
+              <p role="alert" className="text-sm text-destructive">
+                {t(
+                  "Para usar o contato mínimo, desligue o envio do responsável abaixo. A regra não será salva enquanto as duas opções estiverem ligadas.",
+                )}
+              </p>
+            )}
+          </div>
+        )}
       </div>
       {/* Opt-in do responsável (#1612) — DESLIGADO é o padrão, e a frase diz o
           que muda no corpo: quem lê esta tela é justamente quem vai receber o
@@ -879,7 +945,7 @@ function CallWebhookForm({
           para o rótulo e o campo não parecerem coisas diferentes. */}
       <div className="flex items-center justify-between gap-3 rounded-md border p-3">
         <div className="space-y-0.5">
-          <Label>{t("Incluir o responsável no corpo")}</Label>
+          <Label htmlFor={ownerId}>{t("Incluir o responsável no corpo")}</Label>
           <p className="text-xs text-muted-foreground">
             {t(
               "Padrão: o aviso não diz quem atende. Ligue só se o outro sistema precisar do nome da equipe.",
@@ -887,6 +953,7 @@ function CallWebhookForm({
           </p>
         </div>
         <Switch
+          id={ownerId}
           checked={config.include_owner === true}
           onCheckedChange={(v) => onChange({ ...config, include_owner: v ? true : undefined })}
         />

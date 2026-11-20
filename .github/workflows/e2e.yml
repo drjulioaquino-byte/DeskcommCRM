@@ -998,6 +998,7 @@ jobs:
         qa-telas-descobertas-w4.spec.ts
         retorno-anti-morte.spec.ts
         webhooks.spec.ts
+        webhook-projecao-minima.spec.ts
         designer-de-automacoes.spec.ts
         logo-moldura-no-tema-escuro.spec.ts
         historico-de-captacao.spec.ts
