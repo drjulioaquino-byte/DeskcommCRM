@@ -1,11 +1,11 @@
 ---
 name: fluxo-implementador-revisora
-description: 'Aplica a governança local Codex e Claude do fork DeskcommCRM: ordens humanas, revisões, checks e merges autorizados.'
+description: 'Regras locais de ordens e merge'
 ---
 
 # Fluxo implementadora ↔ revisora Claude — adaptação local do DeskcommCRM
 
-**Adaptação local do fork `drjulioaquino-byte/DeskcommCRM`.** Complementa a skill global `fluxo-implementadora` 2.0.0, cuja fonte fica em `drjulioaquino-byte/ClinicOS`, arquivo `.agents/skills/fluxo-implementadora/SKILL.md`, com o ajuste de **execução de ordens equivalente à 2.0.1**, conforme decisão humana; não altera nem publica a skill global. **Ordem de origem:** O-20261120-1208-AF, 20/11/2026 12:08 (Brasília). **Assinatura dos registros:** `[Codex · Integrações]` nesta sessão, ou a assinatura correspondente da sessão expressamente designada. Branch exclusiva por sessão, com prefixo `codex/integracoes/` para Integrações.
+**Adaptação local do fork `drjulioaquino-byte/DeskcommCRM`.** Complementa a skill global `fluxo-implementadora` 2.0.0, cuja fonte é [ClinicOS — fluxo-implementadora](https://github.com/drjulioaquino-byte/ClinicOS/blob/main/.agents/skills/fluxo-implementadora/SKILL.md), com o ajuste de **execução de ordens equivalente à 2.0.1**, conforme decisão humana; não altera nem publica a skill global. **Ordem de origem:** O-20261120-1208-AF, 20/11/2026 12:08 (Brasília). **Assinatura dos registros:** `[Codex · Integrações]` nesta sessão, ou a assinatura correspondente da sessão expressamente designada. Branch exclusiva por sessão, com prefixo `codex/integracoes/` para Integrações.
 
 ## 1. Origem, precedência e sincronização do fork
 
