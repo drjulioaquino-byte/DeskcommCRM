@@ -206,12 +206,15 @@ describe("webhook de saída: o Reenviar é a mesma entrega (#1529)", () => {
     await runAutomationForEvent(bancoFalso(tabelas), fato);
     expect(corpos).toHaveLength(3);
     const bodies = corpos as unknown as Array<{ data: Record<string, unknown> }>;
-    expect(bodies[0].data).toEqual({
+    const [minimal, legacyFirst, legacySecond] = bodies;
+    if (!minimal || !legacyFirst || !legacySecond)
+      throw new Error("Faltou uma das três entregas fictícias.");
+    expect(minimal.data).toEqual({
       added_tags: ["contrato"],
       contact: { id: contato, name: "Contato fictício", phone_number: "+5511000000000" },
     });
-    expect(bodies[1].data).toEqual(bodies[2].data);
-    expect(bodies[1].data).toMatchObject({
+    expect(legacyFirst.data).toEqual(legacySecond.data);
+    expect(legacyFirst.data).toMatchObject({
       added_tags: ["Contrato", "Outra"],
       unexpected: "PRIVATE_PAYLOAD",
       contact: { email: "PRIVATE_EMAIL" },
@@ -266,7 +269,8 @@ describe("webhook de saída: o Reenviar é a mesma entrega (#1529)", () => {
       deps.criarClientAdmin.mockReturnValue(banco);
       await runAutomationForEvent(banco, fato);
       expect(corpos).toHaveLength(1);
-      const original = tabelas.automation_rule_runs[0];
+      const original = tabelas.automation_rule_runs?.[0];
+      if (!original) throw new Error("O motor não gravou o run fictício.");
       expect((await reenviar(original.id as string)).status).toBe(201);
       const expected = {
         added_tags: ["contrato"],

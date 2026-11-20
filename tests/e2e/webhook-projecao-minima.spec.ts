@@ -13,17 +13,17 @@ test.beforeAll(() => {
   creds = JSON.parse(readFileSync(".e2e-creds.json", "utf8")) as Creds;
 });
 async function login(page: Page, role: "manager" | "agent") {
+  const user = creds.users[role];
+  if (!user) throw new Error(`Falta o usuário fictício ${role} no seed E2E.`);
   await page.goto(`${APP_URL}/login`);
-  await page.locator("#email").fill(creds.users[role].email);
+  await page.locator("#email").fill(user.email);
   await page.locator("#password").fill(creds.password);
   await page.getByRole("button", { name: "Entrar", exact: true }).click();
   await page.waitForURL(/\/app\//);
 }
 
 for (const trigger of ["contact.tag_added", "lead.tag_added"]) {
-  test(`${trigger}: gestor edita, salva e reabre o opt-in`, async ({
-    page,
-  }) => {
+  test(`${trigger}: gestor edita, salva e reabre o opt-in`, async ({ page }) => {
     await login(page, "manager");
     const name = `E2E contato mínimo fictício ${trigger} ${Date.now()}`;
     const actions = [

@@ -82,7 +82,12 @@ function context(event = "contact.tag_added"): ActionCtx {
 }
 const send = (ctx = context(), cfg: Record<string, unknown> = config) =>
   executeCallWebhook(ctx, cfg, { skipUrlCheck: true, retryDelaysMs: [] });
-const sent = () => JSON.parse(fetcher.mock.calls[0][1]?.body as string);
+function webhookRequest(index = 0): RequestInit {
+  const request = fetcher.mock.calls[index]?.[1];
+  if (!request) throw new Error(`Não houve a requisição fictícia ${index}.`);
+  return request;
+}
+const sent = () => JSON.parse(webhookRequest().body as string);
 beforeEach(() => {
   deps.resolveDestination.mockReset().mockResolvedValue(undefined);
   vi.useFakeTimers();
@@ -188,7 +193,7 @@ describe("P-03/P-05/P-08: falha fechada sem vazamento nem fallback", () => {
       context(),
       context("lead.tag_added"),
       context("lead.tag_added"),
-    ];
+    ] as const;
     (cases[0].context.contact as Record<string, unknown>).organization_id = "other-org";
     cases[1].event.organization_id = "other-org";
     cases[2].event.entity_id = LEAD;
@@ -214,7 +219,7 @@ it("P-06: assina os bytes mínimos, conserva entrega/reenvio e continua a tentat
     retryDelaysMs: [],
     primeiraTentativa: 4,
   });
-  const init = fetcher.mock.calls[0][1]!,
+  const init = webhookRequest(),
     body = init.body as string,
     headers = init.headers as Record<string, string>;
   expect(headers["X-Webhook-Attempt"]).toBe("4");
@@ -239,13 +244,13 @@ describe("schema da regra", () => {
       trigger_event: "lead.tag_added",
       actions: [{ type: "call_webhook", config }],
     });
-    expect(minimal.actions[0].config).toMatchObject({ projection });
+    expect(minimal.actions[0]?.config).toMatchObject({ projection });
     const legacy = createAutomationRuleSchema.parse({
       name: "Fictícia",
       trigger_event: "lead.created",
       actions: [{ type: "call_webhook", config: { url: config.url } }],
     });
-    expect(legacy.actions[0].config).not.toHaveProperty("projection");
+    expect(legacy.actions[0]?.config).not.toHaveProperty("projection");
   });
   it("recusa gatilho errado, responsável e perfil desconhecido no create/PATCH", () => {
     for (const [event, cfg] of [
@@ -373,12 +378,10 @@ it("P-06: retry mantém corpo e id; mudar perfil ou etiqueta muda a identidade",
   const pending = executeCallWebhook(ctx, config, { skipUrlCheck: true, retryDelaysMs: [1000] });
   await vi.advanceTimersByTimeAsync(1000);
   expect((await pending).status).toBe("success");
-  expect(fetcher.mock.calls[0][1]?.body).toBe(fetcher.mock.calls[1][1]?.body);
-  expect((fetcher.mock.calls[1][1]?.headers as Record<string, string>)["X-Webhook-Attempt"]).toBe(
-    "2",
-  );
-  const firstHeaders = fetcher.mock.calls[0][1]?.headers as Record<string, string>;
-  const secondHeaders = fetcher.mock.calls[1][1]?.headers as Record<string, string>;
+  expect(webhookRequest().body).toBe(webhookRequest(1).body);
+  expect((webhookRequest(1).headers as Record<string, string>)["X-Webhook-Attempt"]).toBe("2");
+  const firstHeaders = webhookRequest().headers as Record<string, string>;
+  const secondHeaders = webhookRequest(1).headers as Record<string, string>;
   expect(Number(secondHeaders["X-Webhook-Timestamp"])).toBe(
     Number(firstHeaders["X-Webhook-Timestamp"]) + 1,
   );
