@@ -8,6 +8,8 @@
  */
 import { z } from "zod";
 import { webhookFormFieldsSchema } from "@/lib/webhooks/formulario";
+import { normalizarTag } from "@/lib/contacts/tag-normalizada";
+
 
 import {
   GATILHO_DE_DATA_DO_FUNIL,
@@ -19,6 +21,40 @@ import {
   configDaEtapaParada,
   configDoSilencio,
 } from "@/lib/automation/gatilhos-de-tempo";
+
+/** Perfil fechado: desconhecido ou malformado nunca pode virar envio amplo. */
+export const contactMinimalProjectionSchema = z.object({
+  mode: z.literal("contact_minimal"),
+  tag: z.string().trim().min(1).max(40).transform(normalizarTag),
+}).strict();
+
+export const MENSAGEM_PROJECAO_MINIMA =
+  "A projeção mínima exige contact.tag_added ou lead.tag_added, uma etiqueta válida e o envio do responsável desligado.";
+
+/** Também confere opções aninhadas de ai_decide e configurações já gravadas. */
+export function projecaoMinimaInvalida(trigger: string, actions: readonly unknown[]): boolean {
+  return actions.some((action) => {
+    if (!action || typeof action !== "object") return false;
+    const { type, config } = action as { type?: unknown; config?: Record<string, unknown> };
+    if (type === "ai_decide" && Array.isArray(config?.opcoes)) {
+      return projecaoMinimaInvalida(trigger, config.opcoes.map((opcao) => opcao?.acao));
+    }
+    if (type !== "call_webhook" || !config || typeof config !== "object" || !("projection" in config)) return false;
+    return !contactMinimalProjectionSchema.safeParse(config.projection).success ||
+      config.include_owner === true ||
+      !["contact.tag_added", "lead.tag_added"].includes(trigger);
+  });
+}
+
+function conferirProjecaoMinima(
+  rule: { trigger_event?: string; actions?: readonly unknown[] },
+  ctx: z.RefinementCtx,
+) {
+  if (rule.trigger_event && rule.actions && projecaoMinimaInvalida(rule.trigger_event, rule.actions)) {
+    ctx.addIssue({ code: "custom", path: ["actions"], message: MENSAGEM_PROJECAO_MINIMA });
+  }
+}
+
 
 /**
  * Os gatilhos que o motor reconhece, e a entidade que cada um tem que trazer.
@@ -408,6 +444,11 @@ const acoesFixas = [
        * quando quem monta a regra pede, na cara, na tela.
        */
       include_owner: z.boolean().optional(),
+      projection: contactMinimalProjectionSchema.optional(),
+    }).superRefine((config, ctx) => {
+      if (config.projection && config.include_owner === true) {
+        ctx.addIssue({ code: "custom", path: ["include_owner"], message: MENSAGEM_PROJECAO_MINIMA });
+      }
     }),
   }),
   // #2647 — a ação alcança o fluxo de ATENDIMENTO, e o caminho é o do produto
@@ -566,7 +607,8 @@ export const createAutomationRuleSchema = z
   .superRefine(exigirConfigDoGatilhoDeData)
   .superRefine(exigirConfigDosGatilhosDeTempo)
   .superRefine(exigirIdDaFonteWebhook)
-  .superRefine(recusarLacoDeLead);
+  .superRefine(recusarLacoDeLead)
+  .superRefine(conferirProjecaoMinima);
 
 function exigirIdDaFonteWebhook(
   regra: { trigger_config?: Record<string, unknown> },
@@ -663,7 +705,8 @@ export const updateAutomationRuleSchema = z
   .superRefine(exigirIdDaFonteWebhook)
   // Só vê o laço quando o PATCH traz gatilho E ações; o PATCH parcial é
   // conferido contra a regra gravada na rota.
-  .superRefine(recusarLacoDeLead);
+  .superRefine(recusarLacoDeLead)
+  .superRefine(conferirProjecaoMinima);
 
 export type CreateWebhookSourceInput = z.infer<typeof createWebhookSourceSchema>;
 export type UpdateWebhookSourceInput = z.infer<typeof updateWebhookSourceSchema>;

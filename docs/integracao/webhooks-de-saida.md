@@ -36,6 +36,72 @@ Um `POST` com `Content-Type: application/json` e este corpo:
 | `delivery_id` | O id da entrega — o mesmo valor do cabeçalho `X-Webhook-Delivery`. |
 | `data` | Os dados do evento, com a projeção pública do lead, do contato e do compromisso quando existem. |
 
+### 1.1 Contato mínimo por ação (opcional)
+
+No editor da ação **Avisar outro sistema (webhook)**, o gestor pode ligar
+**Enviar somente o contato mínimo** e informar a etiqueta inteira que dispara
+o envio. A opção atende somente a `contact.tag_added` ou `lead.tag_added`;
+cada regra continua tendo um único gatilho. Para atender aos dois eventos,
+configure duas regras. Nenhuma regra existente recebe esse perfil automaticamente.
+
+Exemplo fictício da configuração salva em `actions[].config`:
+
+```json
+{
+  "url": "https://receiver.example.invalid/hook",
+  "projection": { "mode": "contact_minimal", "tag": "contrato" }
+}
+```
+
+O envelope tem **exatamente** `event`, `occurred_at`, `happened_at`,
+`delivery_id` e `data`. Neste perfil, `data` é construído do zero:
+
+```json
+{
+  "added_tags": ["contrato"],
+  "contact": {
+    "id": "20000000-0000-4000-8000-000000000002",
+    "name": "Contato fictício",
+    "phone_number": "+5511000000000"
+  }
+}
+```
+
+Não leva `lead` (nem no evento do negócio), email, outras etiquetas, campos
+personalizados, responsável, compromisso, empresa ou chaves extras do payload.
+O telefone é o cadastrado, incluindo `+`, validado em E.164; não é inferido,
+completado nem buscado por nome ou telefone. Os três campos são obrigatórios.
+O contato é exclusivamente o hidratado pelo motor na mesma empresa. No evento
+do negócio, exige também o `contact_id` desse negócio e a identidade da entidade
+do evento. Divergência falha sem enviar e sem buscar um substituto no payload.
+
+A etiqueta configurada e cada item de `added_tags` usam `normalizarTag`:
+aparar pontas e converter para minúsculas, com validação do limite de 40 antes
+da comparação. A comparação é do elemento inteiro, preservando acentos e
+pontuação. `Contrato` e ` contrato ` casam; `contráto`, `contrato!`, `contratox`
+e `contrato anual` não casam com `contrato`. Só a etiqueta correspondente sai,
+uma vez. Não basta a etiqueta já estar no cadastro: ela precisa ter sido
+adicionada naquele evento. Sem correspondência, a ação é pulada sem POST.
+
+Perfil desconhecido, nulo, com chaves extras ou etiqueta inválida é recusado,
+assim como `include_owner: true`. Desligue o envio do responsável explicitamente;
+o editor não o desliga sozinho. A API valida criação, PATCH parcial sobre o
+estado final e reativação; o executor valida novamente configurações injetadas.
+Desativar uma regra inválida continua permitido. A aba Atividade explica os
+motivos de falha ou de não envio sem registrar nome, telefone ou corpo.
+
+As assinaturas, os cabeçalhos, a proteção de URL/DNS, o timeout e as retentativas
+das seções seguintes continuam iguais. O perfil e a etiqueta participam do
+fingerprint já existente: a mesma configuração preserva o id no Reenviar;
+alterá-los gera outra identidade. O recebimento HTTP não comprova importação,
+aceite humano ou consentimento no sistema de destino.
+
+Sem `projection`, a ação segue o contrato amplo existente. Para uma futura
+remoção do recurso, revise ou pause primeiro as regras mínimas e seus reenvios
+pendentes por decisão humana: remover o perfil ou reverter o código não pode
+ampliar esses envios em silêncio. Esta implementação não configura regra nem
+destino em produção, nem concede autorização para publicação ou tráfego real.
+
 ## 2. Os cabeçalhos
 
 | Cabeçalho | Quando sai | O que significa |

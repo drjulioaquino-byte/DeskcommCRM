@@ -52,7 +52,7 @@
       "col": 3,
       "type": "regra",
       "label": "createAutomationRuleSchema",
-      "sublabel": "a mesma régua da rota; o laço #1528 continua valendo"
+      "sublabel": "mesma régua da rota; projection contact_minimal é opt-in, fechado e restrito aos dois gatilhos de etiqueta"
     },
     {
       "id": "rota",
@@ -60,7 +60,7 @@
       "col": 3,
       "type": "api",
       "label": "POST/PATCH /api/v1/automation-rules",
-      "sublabel": "sem rota nova: as mesmas mutações do editor em lista"
+      "sublabel": "manager+ e empresa da sessão; PATCH confere gatilho e ações finais, inclusive ao reativar"
     },
     {
       "id": "regras",
@@ -77,6 +77,21 @@
       "type": "worker",
       "label": "lib/automation/engine.ts",
       "sublabel": "não muda: lê a regra, não sabe qual tela a montou"
+    },
+    {
+      "id": "executor-webhook", "lane": "dados", "col": 5, "type": "worker",
+      "label": "call-webhook.ts",
+      "sublabel": "opt-in constrói data do zero; contato hidratado e vinculado; ausência conserva envio atual"
+    },
+    {
+      "id": "destino-webhook", "lane": "borda", "col": 6, "type": "api",
+      "label": "Destino configurado pelo gestor",
+      "sublabel": "URL/DNS seguro, assinatura e mesma entrega; HTTP não comprova importação ou aceite"
+    },
+    {
+      "id": "atividade-webhook", "lane": "humano", "col": 5, "type": "frontend",
+      "label": "ActivityTab",
+      "sublabel": "motivos fixos, tentativa e entrega; sem nome, telefone ou corpo; gestor revisa a regra"
     }
   ],
   "edges": [
@@ -88,7 +103,12 @@
     { "id": "a6", "from": "rota", "to": "regras", "label": "INSERT/UPDATE com organization_id da sessão" },
     { "id": "a7", "from": "regras", "to": "motor", "label": "o motor roda a regra salva e ligada, como sempre" },
     { "id": "a8", "from": "regras", "to": "designer", "label": "a lista de automações reabre a regra no designer — e no editor em lista" },
-    { "id": "a9", "from": "designer", "to": "aba", "label": "voltar abre a aba Automações (/app/webhooks?aba=automacoes)" }
+    { "id": "a9", "from": "designer", "to": "aba", "label": "voltar abre a aba Automações (/app/webhooks?aba=automacoes)" },
+    { "id": "a10", "from": "motor", "to": "executor-webhook", "label": "evento e contexto hidratado na empresa da regra" },
+    { "id": "a11", "from": "executor-webhook", "to": "destino-webhook", "label": "POST fechado no modo mínimo; sem fallback amplo quando inválido" },
+    { "id": "a12", "from": "destino-webhook", "to": "executor-webhook", "label": "status HTTP; retry, timeout e redirect manual preservados" },
+    { "id": "a13", "from": "executor-webhook", "to": "atividade-webhook", "label": "resultado sem payload pessoal; motivo de falha ou etiqueta não adicionada" },
+    { "id": "a14", "from": "atividade-webhook", "to": "lista", "label": "gestor revisa opt-in e etiqueta no editor; correção não é automática" }
   ],
   "cards": [
     {

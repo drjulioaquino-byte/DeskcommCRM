@@ -28,6 +28,52 @@ import { assertDestinoResolvidoSeguro } from "@/lib/automation/outbound-ip";
 import { assertSafeOutboundUrl } from "@/lib/automation/outbound-url";
 import { mensagemDeErro } from "@/lib/automation/actions/erro-legivel";
 import { decryptWebhookSecret } from "@/lib/webhooks/secrets";
+import { contactMinimalProjectionSchema } from "@/lib/schemas/webhooks";
+import { contactCreateSchema } from "@/lib/schemas/contacts";
+import { normalizarTag } from "@/lib/contacts/tag-normalizada";
+
+const contatoMinimoSchema = contactCreateSchema.pick({ name: true, phone_number: true })
+  .required().extend({ id: z.string().uuid() });
+
+type ErroDaProjecaoMinima = "minimal_projection_invalid" | "minimal_owner_incompatible" |
+  "minimal_trigger_incompatible" | "minimal_contact_mismatch" | "minimal_contact_invalid" | "minimal_tags_invalid";
+type ProjecaoMinima =
+  | { ok: true; data: { added_tags: string[]; contact: z.infer<typeof contatoMinimoSchema> } }
+  | { ok: false; result: ActionResultDetail };
+
+/** Só usa contexto hidratado e vinculado pelo motor; nunca completa pelo payload. */
+function projetarContatoMinimo(ctx: ActionCtx, config: Record<string, unknown>): ProjecaoMinima {
+  const failed = (error: ErroDaProjecaoMinima): ProjecaoMinima => ({ ok: false, result: { type: "call_webhook", status: "failed", error } });
+  const profile = contactMinimalProjectionSchema.safeParse(config.projection);
+  if (!profile.success) return failed("minimal_projection_invalid");
+  if (config.include_owner === true) return failed("minimal_owner_incompatible");
+  const event = ctx.event;
+  if (event.event_type !== "contact.tag_added" && event.event_type !== "lead.tag_added") {
+    return failed("minimal_trigger_incompatible");
+  }
+  const contact = ctx.context.contact as Record<string, unknown> | undefined;
+  const lead = ctx.context.lead as Record<string, unknown> | undefined;
+  if (event.organization_id !== ctx.organizationId || contact?.organization_id !== ctx.organizationId) {
+    return failed("minimal_contact_mismatch");
+  }
+  const parsed = contatoMinimoSchema.safeParse(contact);
+  if (!parsed.success) return failed("minimal_contact_invalid");
+  if (event.event_type === "contact.tag_added") {
+    if (event.entity_kind !== "contact" || event.entity_id !== parsed.data.id) return failed("minimal_contact_mismatch");
+  } else if (event.entity_kind !== "crm_lead" || !lead || !z.string().uuid().safeParse(lead.id).success ||
+    lead.organization_id !== ctx.organizationId || lead.id !== event.entity_id ||
+    lead.contact_id !== parsed.data.id) {
+    return failed("minimal_contact_mismatch");
+  }
+  // Não truncar etiquetas inválidas: o normalizador tem teto por conveniência
+  // dos escritores, mas um evento injetado não pode casar pelo prefixo.
+  const tags = z.array(z.string().trim().min(1).max(40)).safeParse(event.payload?.added_tags);
+  if (!tags.success) return failed("minimal_tags_invalid");
+  if (!tags.data.some((tag) => normalizarTag(tag) === profile.data.tag)) {
+    return { ok: false, result: { type: "call_webhook", status: "skipped", detail: { reason: "minimal_tag_not_added" } } };
+  }
+  return { ok: true, data: { added_tags: [profile.data.tag], contact: parsed.data } };
+}
 
 const TIMEOUT_MS = 10_000;
 const RETRY_DELAYS_MS = [1_000, 5_000]; // total 3 tentativas
@@ -397,6 +443,8 @@ export async function executeCallWebhook(
     primeiraTentativa?: number;
   } = {},
 ): Promise<ActionResultDetail> {
+  const minimal = "projection" in config ? projetarContatoMinimo(ctx, config) : undefined;
+  if (minimal && !minimal.ok) return minimal.result;
   const url = typeof config.url === "string" ? config.url : null;
   if (!url) return { type: "call_webhook", status: "failed", error: "missing_url" };
   if (!opts.skipUrlCheck) {
@@ -411,24 +459,30 @@ export async function executeCallWebhook(
     }
   }
 
-  const leadPublic = projectPublicFields(ctx.context.lead, LEAD_PUBLIC_FIELDS);
-  const contactPublic = projectPublicFields(ctx.context.contact, CONTACT_PUBLIC_FIELDS);
-  const ownerPublic = await responsavelPublico(ctx, config);
-  const compromissoPublic = localDoCompromisso(ctx.context.appointment);
+  // Só o caminho legado consulta o responsável ou abre a projeção ampla.
+  let data: Record<string, unknown>;
+  if (minimal) {
+    data = minimal.data;
+  } else {
+    const leadPublic = projectPublicFields(ctx.context.lead, LEAD_PUBLIC_FIELDS);
+    const contactPublic = projectPublicFields(ctx.context.contact, CONTACT_PUBLIC_FIELDS);
+    const ownerPublic = await responsavelPublico(ctx, config);
+    const compromissoPublic = localDoCompromisso(ctx.context.appointment);
+    data = {
+      ...payloadPublico(ctx.event.event_type, ctx.event.payload ?? {}),
+      ...(leadPublic ? { lead: leadPublic } : {}),
+      ...(contactPublic ? { contact: contactPublic } : {}),
+      ...(compromissoPublic ?? {}),
+      ...(ownerPublic ? { owner: ownerPublic } : {}),
+    };
+  }
   const entrega = idDaEntrega(ctx.event.id, ctx.ruleId, ctx.actionIndex ?? 0, ctx.ruleActions ?? []);
   const body = JSON.stringify({
     event: ctx.event.event_type,
     occurred_at: new Date().toISOString(),
     happened_at: horaDoFato(ctx.event.created_at),
     delivery_id: entrega,
-    data: {
-      ...payloadPublico(ctx.event.event_type, ctx.event.payload ?? {}),
-      ...(leadPublic ? { lead: leadPublic } : {}),
-      ...(contactPublic ? { contact: contactPublic } : {}),
-      ...(compromissoPublic ?? {}),
-      // Só com `include_owner: true` (#1612) — ver `responsavelPublico`.
-      ...(ownerPublic ? { owner: ownerPublic } : {}),
-    },
+    data,
   });
   // Fixos dentro da execução: o corpo e o id da entrega não mudam entre as
   // tentativas. Tentativa, carimbo e assinatura com carimbo mudam — ver o laço.
@@ -490,7 +544,7 @@ export async function executeCallWebhook(
       }
       lastError = res.status >= 300 && res.status < 400 ? "redirect_not_followed" : `http_${res.status}`;
     } catch (err) {
-      lastError = mensagemDeErro(err);
+      lastError = minimal ? "minimal_delivery_failed" : mensagemDeErro(err);
     }
     const delay = retryDelaysMs[i];
     if (delay !== undefined) await sleep(delay);

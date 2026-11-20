@@ -71,6 +71,14 @@ function statusBadgeLabel(status: AutomationRuleRunRow["status"], t: (texto: str
  * que nascem no próprio executor.
  */
 const MOTIVO_DA_PARADA: Record<string, string> = {
+  minimal_projection_invalid: "O perfil de contato mínimo está inválido. Revise a configuração da ação.",
+  minimal_owner_incompatible: "Desligue o envio do responsável para usar o contato mínimo.",
+  minimal_trigger_incompatible: "O contato mínimo só atende à adição de etiqueta no contato ou no negócio.",
+  minimal_contact_invalid: "O contato vinculado precisa de id, nome e telefone válidos para este envio.",
+  minimal_contact_mismatch: "O contato, a entidade e a empresa do evento não correspondem. Nenhum dado foi enviado.",
+  minimal_tags_invalid: "O evento não trouxe uma lista válida de etiquetas adicionadas.",
+  minimal_tag_not_added: "A etiqueta configurada não foi adicionada neste evento. Nenhum dado foi enviado.",
+  minimal_delivery_failed: "O envio do contato mínimo falhou. Confira o destino antes de reenviar.",
   no_contact: "Esse lead entrou sem contato vinculado, então não havia para quem escrever.",
   contact_blocked: "O contato pediu para não receber mensagens (opt-out).",
   no_phone: "O contato não tem telefone cadastrado.",

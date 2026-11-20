@@ -15,7 +15,12 @@ import {
 } from "@/lib/automation/campo-do-gatilho-de-data";
 import { autoriaDaMudanca } from "@/lib/operacao/autoria";
 import { updateAutomationRuleSchema } from "@/lib/schemas";
-import { acoesQueFechamLaco, MENSAGEM_DO_LACO_DE_LEAD } from "@/lib/schemas/webhooks";
+import {
+  acoesQueFechamLaco,
+  MENSAGEM_DO_LACO_DE_LEAD,
+  projecaoMinimaInvalida,
+  MENSAGEM_PROJECAO_MINIMA,
+} from "@/lib/schemas/webhooks";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { encryptRuleActionSecrets } from "@/lib/webhooks/secrets";
@@ -67,6 +72,17 @@ export async function PATCH(req: NextRequest, ctx: RouteCtx): Promise<Response> 
   // (só `is_active`) nunca é barrado.
   const gravada = existing as { trigger_event: string; actions: { type: string }[] | null };
   if (
+    (parsed.data.trigger_event !== undefined ||
+      parsed.data.actions !== undefined ||
+      parsed.data.is_active === true) &&
+    projecaoMinimaInvalida(
+      parsed.data.trigger_event ?? gravada.trigger_event,
+      parsed.data.actions ?? gravada.actions ?? [],
+    )
+  ) {
+    return fail("invalid_request", t(MENSAGEM_PROJECAO_MINIMA), 400, { requestId });
+  }
+  if (
     (parsed.data.trigger_event !== undefined || parsed.data.actions !== undefined) &&
     acoesQueFechamLaco(
       parsed.data.trigger_event ?? gravada.trigger_event,
@@ -86,7 +102,9 @@ export async function PATCH(req: NextRequest, ctx: RouteCtx): Promise<Response> 
       .maybeSingle();
     if (sourceError) return fail("internal_error", sourceError.message, 500, { requestId });
     if (!source) {
-      return fail("invalid_request", t("A fonte escolhida não pertence a esta empresa."), 422, { requestId });
+      return fail("invalid_request", t("A fonte escolhida não pertence a esta empresa."), 422, {
+        requestId,
+      });
     }
   }
 
@@ -125,7 +143,9 @@ export async function PATCH(req: NextRequest, ctx: RouteCtx): Promise<Response> 
     if (safeActions === null) {
       return fail(
         "encryption_unavailable",
-        t("Não foi possível guardar o segredo do webhook com segurança: a chave de cifra desta instalação não está ativa. Quem administra o servidor resolve rodando o update.sh, que gera e ativa a chave."),
+        t(
+          "Não foi possível guardar o segredo do webhook com segurança: a chave de cifra desta instalação não está ativa. Quem administra o servidor resolve rodando o update.sh, que gera e ativa a chave.",
+        ),
         422,
         { requestId },
       );
@@ -150,7 +170,10 @@ export async function PATCH(req: NextRequest, ctx: RouteCtx): Promise<Response> 
     resourceId: id,
     requestId,
     // actions fora do audit: config de call_webhook carrega secret plaintext no input.
-    metadata: { ...auditableRule, ...(parsed.data.actions !== undefined ? { actions_changed: true } : {}) },
+    metadata: {
+      ...auditableRule,
+      ...(parsed.data.actions !== undefined ? { actions_changed: true } : {}),
+    },
   });
 
   return ok(updated, { requestId });
